@@ -1,145 +1,162 @@
-
-#  Inventario de Cámaras  
-API de Inventario de Dispositivos  
+# Inventario de Cámaras  
+**API de Inventario de Dispositivos y Localizaciones**  
 
 ---
 
 ##  Descripción General
 
-La **API de Inventario de Dispositivos** es un sistema backend desarrollado con **FastAPI** y **PostgreSQL** para gestionar equipos de red, localizaciones (grupos) y mantener un historial completo de cambios, asignaciones y bajas lógicas.
-
-Permite crear, actualizar, agrupar y desasignar dispositivos, además de generar un historial detallado de todas las operaciones realizadas.
+La **API de Inventario de Cámaras** es un sistema backend desarrollado con **FastAPI** y **PostgreSQL** para gestionar dispositivos de red (como cámaras IP), registrar localizaciones físicas y mantener un historial completo de cambios, asignaciones y estados.
 
 ---
 
 ##  Tecnologías Utilizadas
 
-- **Python 3.10+**  
-- **FastAPI**  
-- **SQLAlchemy (sincrónico)**  
-- **PostgreSQL**  
-- **Pydantic**  
-- **Docker / Docker Compose**  
+- **Python 3.10+**
+- **FastAPI**
+- **SQLAlchemy (asíncrono)**
+- **PostgreSQL**
+- **Pydantic v2**
 - **Uvicorn**
+- **Docker / Docker Compose**
+- **python-dotenv**
 
 ---
 
-##  Configuración Rápida
+## 🚀 Configuración Rápida
 
-### 1 Clonar y Configurar Entorno
+### 1️⃣ Clonar y Configurar Entorno
 
 ```bash
 git clone <repository-url>
-cd inventario_full_functional
+cd Inventario_Camaras
 python3 -m venv venv
 source venv/bin/activate  # En Windows: venv\Scripts\activate
 ```
 
-### 2 Instalar Dependencias
+### 2️⃣ Instalar Dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3 Configurar Variables de Entorno
+### 3️⃣ Configurar Variables de Entorno
 
-Crear un archivo **.env** en la raíz del proyecto:
+Crea un archivo **.env** en la raíz del proyecto con tus credenciales:
 
-```env
-DATABASE_URL=postgresql://admin:admin123@localhost:5432/inventario_db
+```.env ejemplo
+POSTGRES_USER=ejemplo
+POSTGRES_PASSWORD=ejemplo
+POSTGRES_DB=ejemplo
+DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 ```
-
-### 4 Levantar Base de Datos con Docker
-
-```bash
-docker compose up -d
-```
-
-Esto levantará el contenedor de **PostgreSQL** y la aplicación **FastAPI** automáticamente.
-
-### 5 Ejecutar la Aplicación (si prefieres hacerlo manual)
-
-```bash
-uvicorn app.main:app --reload
-```
-
-La documentación interactiva estará disponible en:  
- [http://localhost:8000/docs](http://localhost:8000/docs)
-
 ---
 
+## Ejecución del Proyecto con Docker
+
+1 **Verifica que Docker esté instalado:**
+
+```bash
+docker --version
+docker compose version
+```
+
+2 **Levanta la aplicación:**
+
+```bash
+docker compose up --build
+```
+
+Esto:
+- Construye la imagen de FastAPI.  
+- Crea y levanta el contenedor PostgreSQL.  
+- Espera a que la base de datos esté lista con el script `wait_for_db.sh`.  
+- Inicia la API en el puerto **8000**.
+
+3 **Abre el navegador y verifica:**
+- Swagger UI → [http://localhost:8000/docs](http://localhost:8000/docs)  
+- Redoc → [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+4 **Para detener los contenedores:**
+```bash
+docker compose down
+```
+
+5 **(Opcional) Eliminar volúmenes (datos persistentes):**
+```bash
+docker compose down -v
+```
+
+---
 ##  Endpoints Principales
 
-###  Dispositivos (`/dispositivos/`)
+###  Dispositivos (`/devices/`)
 
 | Método | Endpoint | Descripción |
 |:--------|:----------|:-------------|
-| **GET** | `/dispositivos/` | Lista todos los dispositivos |
-| **POST** | `/dispositivos/` | Crea un nuevo dispositivo |
-| **GET** | `/dispositivos/{id}` | Obtiene un dispositivo por ID |
-| **PATCH** | `/dispositivos/{id}` | Actualiza un dispositivo |
-| **PATCH** | `/dispositivos/{id}/baja` | Da de baja lógica un dispositivo |
-| **PATCH** | `/dispositivos/{id}/asignar/{grupo_id}` | Asigna a una localización |
-| **PATCH** | `/dispositivos/{id}/desasignar` | Desasigna de localización |
+| **GET** | `/devices/` | Lista todos los dispositivos |
+| **POST** | `/devices/` | Crea un nuevo dispositivo |
+| **GET** | `/devices/{id}` | Obtiene un dispositivo por ID |
+| **PUT** | `/devices/{id}` | Actualiza un dispositivo |
+| **DELETE** | `/devices/{id}` | Elimina un dispositivo |
+| **POST** | `/devices/{id}/assign/{location_id}` | Asigna el dispositivo a una localización |
+| **POST** | `/devices/{id}/change/{location_id}` | Cambia la localización del dispositivo |
+| **PUT** | `/devices/{id}/status` | Actualiza el estado del dispositivo |
 
 ####  Ejemplo de creación
 
 ```json
 {
   "ip": "192.168.1.10",
-  "tipo": "Cámara IP",
-  "descripcion": "Cámara principal de acceso",
-  "camaras": [
-    { "puerto": 8080, "descripcion": "Puerto principal" },
-    { "puerto": 554, "descripcion": "RTSP" }
+  "status": "active",
+  "description": "Cámara principal del acceso",
+  "protocol": "RTSP",
+  "location_id": 1,
+  "ports": [
+    { "port_number": 554, "description": "Puerto RTSP principal" }
   ]
 }
 ```
 
 ---
 
-###  Localizaciones (`/grupos/`)
+###  Localizaciones (`/locations/`)
 
 | Método | Endpoint | Descripción |
 |:--------|:----------|:-------------|
-| **GET** | `/grupos/` | Lista todas las localizaciones |
-| **POST** | `/grupos/` | Crea una nueva localización |
-| **GET** | `/grupos/{id}` | Obtiene una localización por ID |
+| **GET** | `/locations/` | Lista todas las localizaciones |
+| **POST** | `/locations/` | Crea una nueva localización |
+| **GET** | `/locations/{id}` | Obtiene una localización por ID |
+| **PUT** | `/locations/{id}` | Actualiza una localización |
+| **DELETE** | `/locations/{id}` | Elimina una localización |
 
-####  Ejemplo
+####  Ejemplo de creación
 
 ```json
 {
-  "nombre": "Laboratorio A",
-  "ubicacion": "Zona de desarrollo y pruebas"
+  "name": "CAMS",
+  "description": "Cámaras de área de física"
 }
 ```
 
 ---
 
-###  Historial (`/historial/`)
+###  Historial (`/history/`)
 
 | Método | Endpoint | Descripción |
 |:--------|:----------|:-------------|
-| **GET** | `/historial/dispositivo/{id}` | Muestra el historial de operaciones de un dispositivo |
+| **GET** | `/history/` | Muestra el historial completo de operaciones y asignaciones |
 
-#### 🧩 Ejemplo de respuesta
+####  Ejemplo de respuesta
 
 ```json
 [
   {
-    "dispositivo_id": 3,
-    "accion": "Cambio de localización",
-    "grupo_anterior": "Laboratorio A",
-    "grupo_nuevo": "Oficina Central",
-    "timestamp": "2025-10-17T06:22:45"
-  },
-  {
-    "dispositivo_id": 2,
-    "accion": "Baja lógica",
-    "grupo_anterior": "Recepción",
-    "grupo_nuevo": null,
-    "timestamp": "2025-10-17T06:25:02"
+    "id": 3,
+    "device_id": 1,
+    "action": "Cambio de localización",
+    "old_location_id": 1,
+    "new_location_id": 2,
+    "timestamp": "2025-10-22T06:22:45"
   }
 ]
 ```
@@ -148,5 +165,5 @@ La documentación interactiva estará disponible en:
 
 ##  Notas Finales
 
-- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)  
 
